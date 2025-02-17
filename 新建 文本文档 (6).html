@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>批量地址转经纬度</title>
+    <script src="https://webapi.amap.com/maps?v=1.4.15&key=f164e9f24553f24b6838502b9a471e2e"></script>
+</head>
+
+<body>
+    <h1>批量地址转经纬度</h1>
+    <textarea id="addressesInput" placeholder="请输入多个地址，每行一个" style="width: 400px; height: 200px;"></textarea>
+    <button onclick="batchGeocode()">转换</button>
+    <div id="result"></div>
+
+    <script>
+        function batchGeocode() {
+            const addressesInput = document.getElementById('addressesInput');
+            const resultDiv = document.getElementById('result');
+            const addresses = addressesInput.value.split('\n').filter(address => address.trim()!== '');
+
+            if (addresses.length === 0) {
+                resultDiv.innerHTML = '请输入有效的地址';
+                return;
+            }
+
+            const geocoder = new AMap.Geocoder({
+                city: '全国'
+            });
+
+            const results = [];
+            const totalAddresses = addresses.length;
+            let completedCount = 0;
+
+            function processNextAddress() {
+                if (completedCount >= totalAddresses) {
+                    displayResults(results);
+                    return;
+                }
+
+                const address = addresses[completedCount];
+                geocoder.getLocation(address, function (status, result) {
+                    if (status === 'complete' && result.geocodes.length > 0) {
+                        const location = result.geocodes[0].location;
+                        results.push({
+                            address: address,
+                            longitude: location.lng,
+                            latitude: location.lat
+                        });
+                    } else {
+                        results.push({
+                            address: address,
+                            error: '地址解析失败'
+                        });
+                    }
+                    completedCount++;
+                    processNextAddress();
+                });
+            }
+
+            processNextAddress();
+        }
+
+        function displayResults(results) {
+            const resultDiv = document.getElementById('result');
+            let html = '<h2>转换结果</h2><ul>';
+            results.forEach(result => {
+                if (result.error) {
+                    html += `<li>${result.address}: ${result.error}</li>`;
+                } else {
+                    html += `<li>${result.address}: 经度 ${result.longitude}, 纬度 ${result.latitude}</li>`;
+                }
+            });
+            html += '</ul>';
+            resultDiv.innerHTML = html;
+        }
+    </script>
+</body>
+
+</html>
